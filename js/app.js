@@ -31,7 +31,28 @@ var showQuestion = function(question) {
 	return result;
 };
 
+var showAnswer = function(question) {
+	
+	// clone our result template code
+	var result = $('.templates .answerer').clone();
+	
+	// Set the question properties in result
+	var questionElem = result.find('.answerer-name a');
+	questionElem.attr('href', question.user.link);
+	questionElem.text(question.user.display_name);
 
+	// set the .viewed for question property in result
+	var viewed = result.find('.answerer-rep');
+	viewed.text(question.user.reputation);
+
+	var score = result.find('.answerer-score');
+	score.text(question.score);
+
+	var posts = result.find('.answerer-posts');
+	posts.text(question.post_count);
+
+	return result;
+};
 // this function takes the results object from StackOverflow
 // and returns the number of results and tags to be appended to DOM
 var showSearchResults = function(query, resultNum) {
@@ -81,6 +102,34 @@ var getUnanswered = function(tags) {
 	});
 };
 
+var getInspiration = function(answerers) {
+	
+	var request = { 
+		site: 'stackoverflow',
+	};
+	
+	$.ajax({
+		url: "http://api.stackexchange.com/2.2/tags/"+answerers+"/top-answerers/all_time",
+		data: request,
+		dataType: "jsonp",
+		type: "GET",
+	})
+
+	.done(function(result){
+		console.log(result);
+		var searchResults = showSearchResults(answerers, result.items.length);
+
+		$('.search-results').html(searchResults);
+		$.each(result.items, function(i, item) {
+			var question = showAnswer(item);
+			$('.results').append(question);
+		});
+	})
+	.fail(function(jqXHR, error){
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+	});
+};
 
 $(document).ready( function() {
 	$('.unanswered-getter').submit( function(e){
@@ -90,5 +139,12 @@ $(document).ready( function() {
 		// get the value of the tags the user submitted
 		var tags = $(this).find("input[name='tags']").val();
 		getUnanswered(tags);
+	});
+
+	$('.inspiration-getter').submit( function(e){
+		e.preventDefault();
+		$('.results').html('');
+		var answerers = $(this).find("input[name='answerers']").val();
+		getInspiration(answerers);
 	});
 });
